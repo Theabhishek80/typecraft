@@ -720,6 +720,12 @@ body::before{
         <button class="mbtn" data-g="diff" data-v="hard">hard</button>
         <button class="mbtn" data-g="diff" data-v="expert">expert</button>
       </div>
+      <div class="mode-group">
+        <button class="mbtn active" data-g="sound" data-v="soft" title="Soft thud">🔇 soft</button>
+        <button class="mbtn" data-g="sound" data-v="mechanical" title="Mechanical click">⌨ mech</button>
+        <button class="mbtn" data-g="sound" data-v="typewriter" title="Old typewriter">🖨 typer</button>
+        <button class="mbtn" data-g="sound" data-v="silent" title="No sound">✕ mute</button>
+      </div>
     </div>
 
     <!-- Typing Area -->
@@ -762,6 +768,12 @@ body::before{
         <button class="ctrl-btn primary" onclick="restartTest()">↺ restart</button>
         <button class="ctrl-btn" onclick="newText()">⟳ new text</button>
         <button class="ctrl-btn" id="focus-ind" onclick="focusIn()">click to focus</button>
+        <div style="display:flex;align-items:center;gap:0.4rem;margin-left:0.3rem;">
+          <span style="font-size:0.68rem;color:var(--dim);">vol</span>
+          <input type="range" id="vol-slider" min="0" max="100" value="50"
+            style="width:64px;accent-color:var(--gold);cursor:pointer;height:3px;"
+            oninput="SND.setVol(this.value/100)">
+        </div>
         <div class="shortcut-info">
           <span><span class="kbd">Tab</span> restart</span>
           <span><span class="kbd">Esc</span> reset</span>
@@ -1116,6 +1128,144 @@ const HARD_WORDS = "aberration abscond acquiesce adamant adumbrate aesthetic aff
 const EXPERT_WORDS = "abnegation abrogation abstemious accretion acrimonious adumbration alacrity amelioration anachronistic anathema antediluvian anthropomorphic antipodean aphoristic apotheosis asseverate atavistic autodidact bellicose bifurcate byzantine capricious caveat chicanery circumlocution circumspect cognoscenti commensurate compunction concatenate confabulate consanguine contumacious convivial corroborated decrepitude deferential deleterious delineation demagoguery demur desultory dialectical dilettante dissonance dysfunctional ebullience efficacious egregious enervate ephemeral epistemic equanimity equivocate erudite eschew eviscerate exacerbate excoriate exegesis exigent expatiate expedience extrapolate extrinsic fastidious fatuous feckless felicitous flagitious flummoxed fomentation fortuitous fulminate garrulous grandiloquent gratuitous gubernatorial guileless harbinger hegemonic hermetic heuristic iconoclastic idiosyncratic ignominious immutable impecunious impugn inchoate ineluctable inexorable insouciant intransigent invidious irrefragable jejune juxtaposition lachrymose lascivious lionize logorrhea lugubrious magnanimous malfeasance melancholic mendacious mercurial meretricious metonymy miasma misanthropy mollification munificence nebulous nefarious nonplussed obdurate obloquy obstreperous obtuse odious ominous opprobrium ostentatious palimpsest paternalistic peccadillo perfidious perspicacious pertinacious platitudinous pleonasm polemic portentous pragmatic precipitous prestidigitation prevarication probity profligate propitious proscribe punctilious putative querulous ratiocination raucous recalcitrant recondite redolent remonstrate reprobate reticent salubrious sanguine sardonic scrupulous sedulous solipsism sophistry soporific specious spurious stoicism stringent subversive supercilious sycophantic tenuous tendentious timorous turgid ubiquitous unctuous vacillate vapid venality vicarious visceral vituperate voluble zealotry".split(" ");
 
 /* ════════════════════════════════════════════════════════
+   SOUND ENGINE — Web Audio API, zero external files
+════════════════════════════════════════════════════════ */
+const SND = (() => {
+  let ctx = null;
+  let enabled = true;
+  let vol = 0.5;
+  // sound profile
+  let profile = 'soft'; // soft | mechanical | typewriter | silent
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function playTone(freq, type, duration, gainVal, detune=0, attack=0.004, decay=0.08) {
+    if (!enabled || profile === 'silent') return;
+    try {
+      const c = getCtx();
+      const o = c.createOscillator();
+      const g = c.createGain();
+      const now = c.currentTime;
+      o.type = type;
+      o.frequency.setValueAtTime(freq, now);
+      o.detune.setValueAtTime(detune, now);
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(gainVal * vol, now + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      o.connect(g); g.connect(c.destination);
+      o.start(now); o.stop(now + duration + 0.01);
+    } catch(e) {}
+  }
+
+  function playNoise(duration, gainVal, freq=800) {
+    if (!enabled || profile === 'silent') return;
+    try {
+      const c = getCtx();
+      const bufSize = c.sampleRate * duration;
+      const buf = c.createBuffer(1, bufSize, c.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      const filter = c.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = freq;
+      filter.Q.value = 0.8;
+      const g = c.createGain();
+      const now = c.currentTime;
+      g.gain.setValueAtTime(gainVal * vol, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      src.connect(filter); filter.connect(g); g.connect(c.destination);
+      src.start(now); src.stop(now + duration);
+    } catch(e) {}
+  }
+
+  // Sound profiles
+  const profiles = {
+    soft: {
+      key(correct) {
+        // Soft thud — low sine + quick decay
+        const freq = correct ? 420 + Math.random()*60 : 280;
+        playTone(freq, 'sine', 0.09, 0.18, (Math.random()-0.5)*15, 0.002, 0.07);
+        playNoise(0.04, 0.04, correct ? 900 : 400);
+      },
+      space() { playTone(260, 'sine', 0.12, 0.2, 0, 0.003, 0.1); },
+      backspace() { playTone(180, 'sine', 0.07, 0.1, -20, 0.002, 0.06); },
+      finish() {
+        [0,100,200,300,400].forEach((d,i)=>{
+          setTimeout(()=>playTone(440*Math.pow(1.25,i),'sine',0.3,0.25,0,0.01,0.25),d);
+        });
+      }
+    },
+    mechanical: {
+      key(correct) {
+        // Sharp click — square wave + noise burst
+        playTone(correct?1200+Math.random()*200:800,'square',0.025,0.08,0,0.001,0.02);
+        playNoise(0.025, correct?0.12:0.08, correct?2000:1200);
+        playTone(correct?300:180,'triangle',0.06,0.1,0,0.001,0.055);
+      },
+      space() {
+        playTone(180,'square',0.04,0.1,0,0.001,0.035);
+        playNoise(0.05,0.15,600);
+      },
+      backspace() {
+        playTone(600,'square',0.02,0.06,0,0.001,0.018);
+        playNoise(0.02,0.08,1500);
+      },
+      finish() {
+        [0,80,160,240,320].forEach((d,i)=>{
+          setTimeout(()=>{
+            playTone(300*Math.pow(1.3,i),'square',0.15,0.15,0,0.001,0.12);
+            playNoise(0.06,0.1,1000+i*300);
+          },d);
+        });
+      }
+    },
+    typewriter: {
+      key(correct) {
+        // Old typewriter — thump + ding variations
+        playNoise(0.05, correct?0.2:0.14, correct?1800+Math.random()*400:900);
+        playTone(correct?120+Math.random()*40:80,'sawtooth',0.04,0.12,0,0.001,0.035);
+        if(correct&&Math.random()<0.15) setTimeout(()=>playTone(2200,'sine',0.15,0.3,0,0.005,0.12),30);
+      },
+      space() {
+        playNoise(0.08,0.25,500);
+        playTone(90,'sawtooth',0.06,0.15,0,0.001,0.055);
+      },
+      backspace() {
+        playNoise(0.04,0.12,2500);
+        playTone(200,'sine',0.04,0.08,0,0.001,0.03);
+      },
+      finish() {
+        // Typewriter carriage return bell!
+        setTimeout(()=>playTone(2637,'sine',0.6,0.4,0,0.005,0.5),0);
+        setTimeout(()=>playTone(3136,'sine',0.4,0.3,0,0.005,0.4),200);
+        setTimeout(()=>playNoise(0.3,0.15,800),50);
+      }
+    },
+    silent: {
+      key(){}, space(){}, backspace(){}, finish(){}
+    }
+  };
+
+  return {
+    key(correct){ profiles[profile].key(correct); },
+    space(){ profiles[profile].space(); },
+    backspace(){ profiles[profile].backspace(); },
+    finish(){ profiles[profile].finish(); },
+    setProfile(p){ profile=p; },
+    setVol(v){ vol=v; },
+    toggle(){ enabled=!enabled; return enabled; },
+    isEnabled(){ return enabled; },
+    getProfile(){ return profile; }
+  };
+})();
+
+/* ════════════════════════════════════════════════════════
    STATE
 ════════════════════════════════════════════════════════ */
 const mode={type:'words',time:15,diff:'normal'};
@@ -1233,17 +1383,20 @@ function handleInput(){
       if(typed===exp.ch){
         exp.el.className='char-el correct';
         st.correctChars++;
-        if(exp.isSp){setCurrentWord(exp.wi+1);st.wordsTyped++;snapWpm();}
+        if(exp.isSp){setCurrentWord(exp.wi+1);st.wordsTyped++;snapWpm();SND.space();}
+        else SND.key(true);
       } else {
         exp.el.className='char-el wrong';
         st.wrongChars++;
         errFlash();
+        SND.key(false);
       }
       st.charIndex++;
       placeCursor(st.charIndex);
     }
     updateLive();
   } else if(val.length<lastVal.length){
+    SND.backspace();
     if(st.charIndex>0){
       st.charIndex--;
       const prev=charEls[st.charIndex];
@@ -1323,6 +1476,7 @@ function finishTest(){
   if(st.finished)return;
   st.finished=true;st.running=false;
   clearInterval(st.timer);
+  SND.finish();
 
   const elapsed=(Date.now()-st.startTime)/60000;
   const wpm=Math.round((st.correctChars/5)/elapsed);
@@ -1464,6 +1618,7 @@ document.querySelectorAll('.mbtn').forEach(btn=>{
     btn.classList.add('active');
     if(g==='type')mode.type=v;
     else if(g==='time')mode.time=parseInt(v);
+    else if(g==='sound'){SND.setProfile(v);}
     else mode.diff=v;
     newText();
   });
@@ -1516,3 +1671,4 @@ document.getElementById('s-pass').addEventListener('keydown',e=>e.key==='Enter'&
 </script>
 </body>
 </html>
+
