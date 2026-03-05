@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TypeCraft</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Outfit:wght@200;300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════ VARIABLES & RESET ══════════════════ */
+:root {
+  --bg: #080809;
+  --bg2: #0f0f11;
+  --surface: #131316;
+  --surface2: #1a1a1e;
+  --border: #222228;
+  --border2: #2d2d35;
+  --muted: #38383f;
+  --dim: #55555f;
+  --base: #9999aa;
+  --bright: #e8e8f0;
+  --white: #f5f5ff;
+  --gold: #d4a853;
+  --gold2: #f0c96a;
+  --blue: #5b9cf6;
+  --green: #4ec994;
+  --red: #e05c6a;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Outfit', sans-serif;
+  --radius: 10px;
+  --glow: 0 0 20px rgba(212,168,83,0.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--base);
+  font-family:var(--mono);
+  min-height:100vh;
+  overflow-x:hidden;
+  cursor:default;
+}
+
+/* ══════════════════ NOISE OVERLAY ══════════════════ */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:0.018;pointer-events:none;z-index:999;
+}
+
+/* ══════════════════ ANIMATED BG ══════════════════ */
+.bg-orb{
+  position:fixed;border-radius:50%;filter:blur(80px);
+  pointer-events:none;z-index:0;
+}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(212,168,83,0.06),transparent 70%);top:-100px;left:-100px;animation:orbFloat1 18s ease-in-out infinite;}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(91,156,246,0.05),transparent 70%);bottom:-80px;right:-80px;animation:orbFloat2 22s ease-in-out infinite;}
+.orb3{width:300px;height:300px;background:radial-gradient(circle,rgba(78,201,148,0.04),transparent 70%);top:40%;left:50%;transform:translate(-50%,-50%);animation:orbFloat3 15s ease-in-out infinite;}
+
+@keyframes orbFloat1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,40px) scale(1.08)}}
+@keyframes orbFloat2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,-30px) scale(1.05)}}
+@keyframes orbFloat3{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-55%) scale(1.1)}}
+
+/* ══════════════════ PAGES ══════════════════ */
+.page{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  z-index:10;
+  transition:opacity 0.4s ease, transform 0.4s ease;
+}
+.page.hidden{opacity:0;pointer-events:none;transform:translateY(16px)}
+.page.visible{opacity:1;pointer-events:all;transform:translateY(0)}
+
+/* ══════════════════ AUTH PAGE ══════════════════ */
+#auth-page{flex-direction:column;gap:0;}
+
+.auth-logo{
+  font-family:var(--sans);
+  font-weight:900;
+  font-size:2.8rem;
+  letter-spacing:-0.06em;
+  color:var(--white);
+  margin-bottom:0.15em;
+  text-align:center;
+  position:relative;
+}
+.auth-logo .dot{color:var(--gold);}
+.auth-sub{
+  font-size:0.72rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--dim);
+  margin-bottom:2.5rem;
+  text-align:center;
+}
+
+.auth-card{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  padding:2.2rem 2.4rem;
+  width:380px;
+  max-width:95vw;
+  box-shadow:0 24px 80px rgba(0,0,0,0.5);
+  position:relative;
+  overflow:hidden;
+}
+.auth-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(212,168,83,0.4),transparent);
+}
+
+.auth-tabs{
+  display:flex;gap:0;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:3px;
+  margin-bottom:1.8rem;
+}
+.auth-tab{
+  flex:1;padding:0.5rem;
+  background:none;border:none;
+  font-family:var(--mono);font-size:0.75rem;
+  color:var(--dim);letter-spacing:0.06em;
+  cursor:pointer;border-radius:6px;
+  transition:all 0.2s;
+}
+.auth-tab.active{
+  background:var(--surface2);
+  color:var(--gold);
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+
+.form-group{margin-bottom:1.1rem;}
+.form-label{
+  display:block;
+  font-size:0.65rem;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--dim);
+  margin-bottom:0.45rem;
+}
+.form-input{
+  width:100%;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:0.7rem 0.9rem;
+  font-family:var(--mono);font-size:0.88rem;
+  color:var(--bright);letter-spacing:0.02em;
+  outline:none;
+  transition:all 0.2s;
+  -webkit-appearance:none;
+}
+.form-input:focus{border-color:rgba(212,168,83,0.5);box-shadow:0 0 0 3px rgba(212,168,83,0.06);}
+.form-input::placeholder{color:var(--muted);}
+
+.form-err{
+  font-size:0.7rem;color:var(--red);
+  margin-top:0.4rem;display:none;
+  animation:shake 0.3s ease;
+}
+.form-err.show{display:block;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+.btn-auth{
+  width:100%;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  border:none;border-radius:8px;
+  padding:0.8rem;
+  font-family:var(--sans);font-weight:600;
+  font-size:0.9rem;letter-spacing:0.04em;
+  color:#1a1200;cursor:pointer;
+  transition:all 0.2s;
+  margin-top:0.4rem;
+  position:relative;overflow:hidden;
+}
+.btn-auth::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+}
+.btn-auth:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(212,168,83,0.3);}
+.btn-auth:active{transform:translateY(0);}
+
+.auth-demo{
+  text-align:center;margin-top:1.2rem;
+  font-size:0.68rem;color:var(--muted);letter-spacing:0.05em;
+}
+.auth-demo a{color:var(--dim);text-decoration:none;cursor:pointer;transition:color 0.2s;}
+.auth-demo a:hover{color:var(--gold);}
+
+/* Loading spinner inside btn */
+.btn-auth.loading{pointer-events:none;opacity:0.7;}
+.btn-auth.loading::before{
+  content:'';
+  display:inline-block;width:12px;height:12px;
+  border:2px solid rgba(0,0,0,0.3);
+  border-top-color:#000;
+  border-radius:50%;
+  animation:spin 0.6s linear infinite;
+  margin-right:0.5rem;vertical-align:middle;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════ MAIN APP ══════════════════ */
+#app-page{
+  flex-direction:column;
+  align-items:center;
+  padding:0 1rem;
+  overflow-y:auto;
+  justify-content:flex-start;
+}
+
+.app-inner{
+  width:100%;max-width:860px;
+  padding:1.8rem 0 4rem;
+  display:flex;flex-direction:column;gap:1.6rem;
+}
+
+/* ── Header ── */
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  animation:fadeUp 0.5s ease both;
+}
+.app-logo{
+  font-family:var(--sans);font-weight:900;
+  font-size:1.3rem;letter-spacing:-0.04em;
+  color:var(--white);
+}
+.app-logo .dot{color:var(--gold);}
+
+.header-right{display:flex;align-items:center;gap:0.8rem;}
+
+.user-chip{
+  display:flex;align-items:center;gap:0.5rem;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:20px;padding:0.3rem 0.8rem 0.3rem 0.4rem;
+  font-size:0.72rem;color:var(--dim);
+  cursor:default;
+}
+.user-avatar{
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-weight:700;font-size:0.6rem;
+  color:#0a0a0c;flex-shrink:0;
+}
+.user-name{color:var(--base);font-size:0.72rem;}
+
+.btn-icon{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:0.45rem 0.7rem;
+  font-family:var(--mono);font-size:0.7rem;color:var(--dim);
+  cursor:pointer;transition:all 0.15s;letter-spacing:0.04em;
+}
+.btn-icon:hover{color:var(--base);border-color:var(--border2);}
+
+/* ── Stats Row ── */
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;
+  animation:fadeUp 0.5s 0.05s ease both;
+}
+.stat-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:0.9rem 1rem;
+  position:relative;overflow:hidden;
+  transition:border-color 0.2s,transform 0.2s;
+}
+.stat-box:hover{border-color:var(--border2);transform:translateY(-1px);}
+.stat-box::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.015),transparent);
+  pointer-events:none;
+}
+.stat-lbl{font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:0.35rem;}
+.stat-val{
+  font-family:var(--sans);font-weight:700;
+  font-size:1.5rem;letter-spacing:-0.04em;
+  color:var(--bright);line-height:1;
+}
+.stat-val.gold{color:var(--gold);}
+.stat-val.green{color:var(--green);}
+.stat-val.blue{color:var(--blue);}
+
+/* ── Mode Selectors ── */
+.mode-row{
+  display:flex;gap:0.6rem;flex-wrap:wrap;
+  animation:fadeUp 0.5s 0.1s ease both;
+}
+.mode-group{
+  display:flex;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:3px;
+  gap:2px;
+}
+.mbtn{
+  background:none;border:none;
+  font-family:var(--mono);font-size:0.7rem;
+  color:var(--dim);letter-spacing:0.05em;
+  padding:0.38rem 0.75rem;border-radius:6px;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;
+}
+.mbtn:hover{color:var(--base);}
+.mbtn.active{
+  background:var(--surface2);
+  color:var(--gold);
+  box-shadow:0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* ── Typing Area ── */
+.typing-wrap{
+  position:relative;
+  animation:fadeUp 0.5s 0.15s ease both;
+}
+
+.hud-line{
+  display:flex;align-items:baseline;gap:0.8rem;
+  margin-bottom:0.8rem;min-height:2.8rem;
+}
+.hud-timer{
+  font-family:var(--sans);font-weight:700;
+  font-size:2rem;letter-spacing:-0.05em;
+  color:var(--gold);line-height:1;
+  transition:color 0.3s;
+}
+.hud-timer.urgent{color:var(--red);animation:pulse 1s ease infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.hud-live{font-size:0.78rem;color:var(--dim);letter-spacing:0.04em;}
+
+.text-box{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:14px;
+  padding:2rem 2.2rem;
+  font-size:1.18rem;
+  line-height:2.4rem;
+  letter-spacing:0.03em;
+  color:var(--muted);
+  position:relative;
+  cursor:text;
+  user-select:none;
+  min-height:150px;
+  transition:border-color 0.25s,box-shadow 0.25s;
+  overflow:hidden;
+}
+.text-box.focused{
+  border-color:rgba(212,168,83,0.25);
+  box-shadow:0 0 0 1px rgba(212,168,83,0.08), var(--glow);
+}
+.text-box::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(212,168,83,0.2),transparent);
+  opacity:0;transition:opacity 0.3s;
+}
+.text-box.focused::before{opacity:1;}
+
+/* Words */
+.word-el{display:inline-block;margin-right:0.4em;margin-bottom:0.05em;position:relative;}
+.char-el{display:inline-block;position:relative;transition:color 0.08s;}
+.char-el.correct{color:var(--green);}
+.char-el.wrong{color:var(--red);}
+.char-el.pending{color:var(--muted);}
+.word-el.cw .char-el.pending{color:var(--base);}
+
+/* Cursor */
+.tc{
+  display:inline-block;width:2px;height:1.3em;
+  background:var(--gold);
+  position:absolute;left:-1px;top:50%;transform:translateY(-50%);
+  border-radius:1px;
+  animation:tcBlink 1.1s step-end infinite;
+  box-shadow:0 0 10px rgba(212,168,83,0.7),0 0 20px rgba(212,168,83,0.3);
+  z-index:3;
+}
+@keyframes tcBlink{0%,100%{opacity:1}50%{opacity:0}}
+
+#hidden-in{
+  position:absolute;opacity:0;pointer-events:none;
+  width:1px;height:1px;top:0;left:0;
+}
+
+/* Error flash */
+.text-box.ef{animation:errF 0.18s ease;}
+@keyframes errF{0%,100%{border-color:rgba(212,168,83,0.25)}50%{border-color:rgba(224,92,106,0.5);box-shadow:0 0 0 1px rgba(224,92,106,0.1);}}
+
+/* Progress */
+.prog-bar{
+  height:2px;background:var(--border);border-radius:1px;
+  margin-top:0.6rem;overflow:hidden;
+}
+.prog-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--blue),var(--gold));
+  border-radius:1px;
+  transition:width 0.12s linear;
+  width:0%;
+  position:relative;
+}
+.prog-fill::after{
+  content:'';position:absolute;right:0;top:50%;
+  transform:translateY(-50%);
+  width:6px;height:6px;border-radius:50%;
+  background:var(--gold2);
+  box-shadow:0 0 6px var(--gold);
+}
+
+/* Controls */
+.ctrl-row{
+  display:flex;align-items:center;gap:0.7rem;
+  margin-top:0.9rem;flex-wrap:wrap;
+}
+.ctrl-btn{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:0.48rem 1rem;
+  font-family:var(--mono);font-size:0.72rem;
+  color:var(--dim);cursor:pointer;
+  transition:all 0.15s;letter-spacing:0.04em;
+  display:flex;align-items:center;gap:0.4rem;
+}
+.ctrl-btn:hover{color:var(--base);border-color:var(--border2);}
+.ctrl-btn.primary{
+  background:rgba(212,168,83,0.1);
+  border-color:rgba(212,168,83,0.25);
+  color:var(--gold);
+}
+.ctrl-btn.primary:hover{background:rgba(212,168,83,0.16);border-color:rgba(212,168,83,0.45);}
+.kbd{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:4px;padding:0.05rem 0.35rem;
+  font-size:0.6rem;color:var(--dim);letter-spacing:0.05em;
+  min-width:1.4rem;
+}
+.shortcut-info{
+  margin-left:auto;font-size:0.62rem;color:var(--muted);
+  letter-spacing:0.05em;display:flex;gap:0.6rem;align-items:center;
+}
+
+/* Results overlay */
+.results-ov{
+  display:none;position:absolute;inset:0;
+  background:rgba(8,8,9,0.92);
+  backdrop-filter:blur(8px);
+  border-radius:14px;z-index:20;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:1.5rem;padding:2rem;
+}
+.results-ov.show{display:flex;animation:fadeIn 0.35s cubic-bezier(0.16,1,0.3,1);}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
+
+.res-header{
+  text-align:center;
+}
+.res-label{
+  font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:0.3rem;
+}
+.res-wpm-big{
+  font-family:var(--sans);font-weight:900;
+  font-size:4rem;letter-spacing:-0.06em;
+  color:var(--gold);line-height:1;
+}
+.res-wpm-unit{
+  font-size:0.8rem;color:var(--dim);letter-spacing:0.1em;
+  font-family:var(--mono);
+}
+
+.res-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;
+  width:100%;max-width:420px;
+}
+.res-item{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:0.75rem 0.9rem;text-align:center;
+}
+.res-item-label{font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.25rem;}
+.res-item-val{
+  font-family:var(--sans);font-weight:700;
+  font-size:1.3rem;letter-spacing:-0.03em;
+  color:var(--bright);
+}
+.res-item-val.g{color:var(--green);}
+.res-item-val.r{color:var(--red);}
+.res-item-val.b{color:var(--blue);}
+
+.new-best{
+  font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--gold);
+  background:rgba(212,168,83,0.1);border:1px solid rgba(212,168,83,0.25);
+  border-radius:20px;padding:0.3rem 0.9rem;
+  animation:badgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes badgePop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+
+.res-btns{display:flex;gap:0.6rem;}
+
+/* ── History ── */
+.section-head{
+  font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:0.7rem;
+  display:flex;align-items:center;gap:0.5rem;
+}
+.section-head::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.history-wrap{
+  animation:fadeUp 0.5s 0.2s ease both;
+}
+.history-grid{
+  display:flex;flex-direction:column;gap:0.35rem;
+  max-height:220px;overflow-y:auto;
+  padding-right:2px;
+}
+.history-grid::-webkit-scrollbar{width:3px;}
+.history-grid::-webkit-scrollbar-track{background:transparent;}
+.history-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.hist-row{
+  display:grid;
+  grid-template-columns:1.8rem 1fr auto auto auto auto;
+  gap:0.8rem;align-items:center;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:0.5rem 0.75rem;
+  font-size:0.72rem;color:var(--dim);
+  transition:border-color 0.15s;
+  animation:fadeUp 0.3s ease both;
+}
+.hist-row:hover{border-color:var(--border2);}
+.hist-rank{color:var(--gold);font-weight:500;font-family:var(--sans);text-align:center;}
+.hist-mode{color:var(--base);font-size:0.68rem;}
+.hist-wpm{color:var(--green);font-family:var(--sans);font-weight:700;font-size:0.88rem;}
+.hist-acc{color:var(--blue);}
+.hist-err{color:var(--red);font-size:0.68rem;}
+.hist-ts{color:var(--muted);font-size:0.62rem;}
+.no-hist{
+  text-align:center;padding:2rem 0;
+  color:var(--muted);font-size:0.78rem;letter-spacing:0.06em;
+}
+
+/* ── Charts / Heatmap placeholder ── */
+.chart-wrap{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.2rem;
+  animation:fadeUp 0.5s 0.25s ease both;
+}
+.mini-graph{
+  display:flex;align-items:flex-end;gap:3px;height:48px;
+}
+.bar{
+  flex:1;border-radius:3px 3px 0 0;
+  background:rgba(212,168,83,0.2);
+  min-height:3px;
+  transition:background 0.2s;
+  position:relative;
+}
+.bar:hover{background:rgba(212,168,83,0.5);}
+.bar[data-best]{background:rgba(212,168,83,0.7);}
+
+/* ══════════════════ ANIMATIONS ══════════════════ */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ══════════════════ RESPONSIVE ══════════════════ */
+@media(max-width:640px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .text-box{font-size:1rem;line-height:2.1rem;padding:1.4rem 1.2rem;}
+  .res-grid{grid-template-columns:repeat(2,1fr);}
+  .shortcut-info{display:none;}
+  .auth-card{padding:1.6rem 1.4rem;}
+  .res-wpm-big{font-size:3rem;}
+  .hist-row{grid-template-columns:1.6rem 1fr auto auto;font-size:0.65rem;}
+  .hist-err,.hist-ts{display:none;}
+}
+
+/* Caps warn */
+.caps-warn{
+  position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);
+  background:rgba(224,92,106,0.12);border:1px solid rgba(224,92,106,0.35);
+  color:var(--red);font-size:0.72rem;letter-spacing:0.07em;
+  padding:0.45rem 1rem;border-radius:6px;z-index:999;
+  display:none;
+}
+.caps-warn.show{display:block;}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:1.5rem;right:1.5rem;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;padding:0.6rem 1rem;
+  font-size:0.72rem;letter-spacing:0.05em;color:var(--base);
+  z-index:999;
+  transform:translateY(20px);opacity:0;
+  transition:all 0.3s cubic-bezier(0.16,1,0.3,1);
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:rgba(78,201,148,0.4);color:var(--green);}
+.toast.error{border-color:rgba(224,92,106,0.4);color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- Background orbs -->
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="bg-orb orb3"></div>
+
+<!-- ════════════════ AUTH PAGE ════════════════ -->
+<div class="page visible" id="auth-page">
+  <div style="display:flex;flex-direction:column;align-items:center;position:relative;z-index:2">
+    <div class="auth-logo">Type<span class="dot">.</span>Craft</div>
+    <div class="auth-sub">minimal typing practice</div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">sign in</button>
+        <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">create account</button>
+      </div>
+
+      <!-- Login -->
+      <div id="login-form">
+        <div class="form-group">
+          <label class="form-label">username</label>
+          <input class="form-input" id="l-user" type="text" placeholder="your username" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">password</label>
+          <input class="form-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+          <div class="form-err" id="l-err">Invalid username or password</div>
+        </div>
+        <button class="btn-auth" id="l-btn" onclick="doLogin()">sign in</button>
+      </div>
+
+      <!-- Signup -->
+      <div id="signup-form" style="display:none">
+        <div class="form-group">
+          <label class="form-label">username</label>
+          <input class="form-input" id="s-user" type="text" placeholder="choose a username" autocomplete="username">
+          <div class="form-err" id="s-user-err">Username already taken</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">display name</label>
+          <input class="form-input" id="s-name" type="text" placeholder="your name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">password</label>
+          <input class="form-input" id="s-pass" type="password" placeholder="min 6 characters" autocomplete="new-password">
+          <div class="form-err" id="s-pass-err">Password must be at least 6 characters</div>
+        </div>
+        <button class="btn-auth" id="s-btn" onclick="doSignup()">create account</button>
+      </div>
+
+      <div class="auth-demo">
+        <a onclick="demoLogin()">→ try as guest (no save)</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ APP PAGE ════════════════ -->
+<div class="page hidden" id="app-page">
+  <div class="app-inner">
+
+    <!-- Header -->
+    <div class="app-header">
+      <div class="app-logo">Type<span class="dot">.</span>Craft</div>
+      <div class="header-right">
+        <div class="user-chip">
+          <div class="user-avatar" id="u-avatar">?</div>
+          <span class="user-name" id="u-name">guest</span>
+        </div>
+        <button class="btn-icon" onclick="goProfile()">profile</button>
+        <button class="btn-icon" onclick="doLogout()">sign out</button>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-lbl">best wpm</div>
+        <div class="stat-val gold" id="s-bestwpm">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">avg accuracy</div>
+        <div class="stat-val green" id="s-avgacc">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">tests taken</div>
+        <div class="stat-val blue" id="s-tests">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">total keystrokes</div>
+        <div class="stat-val" id="s-keys">0</div>
+      </div>
+    </div>
+
+    <!-- Mode Row -->
+    <div class="mode-row">
+      <div class="mode-group">
+        <button class="mbtn active" data-g="type" data-v="words">words</button>
+        <button class="mbtn" data-g="type" data-v="sentences">sentences</button>
+        <button class="mbtn" data-g="type" data-v="quotes">quotes</button>
+        <button class="mbtn" data-g="type" data-v="pangrams">pangrams</button>
+      </div>
+      <div class="mode-group">
+        <button class="mbtn active" data-g="time" data-v="15">15s</button>
+        <button class="mbtn" data-g="time" data-v="30">30s</button>
+        <button class="mbtn" data-g="time" data-v="60">60s</button>
+        <button class="mbtn" data-g="time" data-v="120">2m</button>
+        <button class="mbtn" data-g="time" data-v="300">5m</button>
+      </div>
+      <div class="mode-group">
+        <button class="mbtn active" data-g="diff" data-v="normal">normal</button>
+        <button class="mbtn" data-g="diff" data-v="hard">hard</button>
+        <button class="mbtn" data-g="diff" data-v="expert">expert</button>
+      </div>
+    </div>
+
+    <!-- Typing Area -->
+    <div class="typing-wrap">
+      <div class="hud-line">
+        <div class="hud-timer" id="hud-t">—</div>
+        <div class="hud-live" id="hud-live"></div>
+      </div>
+
+      <div class="text-box" id="text-box" onclick="focusIn()">
+        <div id="words-c"></div>
+        <input id="hidden-in" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        
+        <!-- Results Overlay -->
+        <div class="results-ov" id="res-ov">
+          <div class="res-header">
+            <div class="res-label">completed</div>
+            <div class="res-wpm-big" id="r-wpm">0</div>
+            <div class="res-wpm-unit">words per minute</div>
+          </div>
+          <div id="new-best-badge" class="new-best" style="display:none">⭐ new personal best!</div>
+          <div class="res-grid">
+            <div class="res-item"><div class="res-item-label">raw wpm</div><div class="res-item-val b" id="r-raw">0</div></div>
+            <div class="res-item"><div class="res-item-label">accuracy</div><div class="res-item-val g" id="r-acc">0%</div></div>
+            <div class="res-item"><div class="res-item-label">consistency</div><div class="res-item-val" id="r-con">0%</div></div>
+            <div class="res-item"><div class="res-item-label">correct</div><div class="res-item-val g" id="r-cor">0</div></div>
+            <div class="res-item"><div class="res-item-label">errors</div><div class="res-item-val r" id="r-err">0</div></div>
+            <div class="res-item"><div class="res-item-label">keystrokes</div><div class="res-item-val" id="r-keys">0</div></div>
+          </div>
+          <div class="res-btns">
+            <button class="ctrl-btn primary" onclick="restartTest()">↺ &nbsp;try again</button>
+            <button class="ctrl-btn" onclick="newText()">⟳ &nbsp;new text</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="prog-bar"><div class="prog-fill" id="prog"></div></div>
+
+      <div class="ctrl-row">
+        <button class="ctrl-btn primary" onclick="restartTest()">↺ restart</button>
+        <button class="ctrl-btn" onclick="newText()">⟳ new text</button>
+        <button class="ctrl-btn" id="focus-ind" onclick="focusIn()">click to focus</button>
+        <div class="shortcut-info">
+          <span><span class="kbd">Tab</span> restart</span>
+          <span><span class="kbd">Esc</span> reset</span>
+          <span><span class="kbd">Tab</span>+<span class="kbd">↵</span> new</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WPM Chart -->
+    <div class="chart-wrap">
+      <div class="section-head">wpm history (last 20 tests)</div>
+      <div class="mini-graph" id="mini-graph">
+        <div class="no-hist" style="width:100%;font-size:0.7rem">no data yet — complete a test!</div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-wrap">
+      <div class="section-head">session history</div>
+      <div class="history-grid" id="hist-grid">
+        <div class="no-hist">complete a test to see your history</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Caps Lock warning -->
+<div class="caps-warn" id="caps-warn">⚠ Caps Lock is ON</div>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   DATABASE (localStorage)
+   Structure:
+   - tc_users: {[username]: {username, displayName, passwordHash, createdAt}}
+   - tc_progress_{username}: {bestWpm, totalTests, totalAcc, totalKeys, history:[]}
+   - tc_session: {username} — current logged-in user
+════════════════════════════════════════════════════════ */
+const DB = {
+  getUsers(){return JSON.parse(localStorage.getItem('tc_users')||'{}')},
+  saveUsers(u){localStorage.setItem('tc_users',JSON.stringify(u))},
+  getProgress(username){return JSON.parse(localStorage.getItem('tc_prog_'+username)||JSON.stringify({bestWpm:0,totalTests:0,totalAcc:0,totalKeys:0,history:[]}))},
+  saveProgress(username,p){localStorage.setItem('tc_prog_'+username,JSON.stringify(p))},
+  getSession(){return localStorage.getItem('tc_session')},
+  setSession(u){localStorage.setItem('tc_session',u)},
+  clearSession(){localStorage.removeItem('tc_session')},
+  // Very simple hash (not for real security, just for UX)
+  hash(str){
+    let h=0;
+    for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}
+    return h.toString(36);
+  }
+};
+
+/* ════════════════════════════════════════════════════════
+   AUTH
+════════════════════════════════════════════════════════ */
+let currentUser = null; // {username, displayName, isGuest}
+
+function switchTab(tab){
+  document.getElementById('tab-login').classList.toggle('active',tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active',tab==='signup');
+  document.getElementById('login-form').style.display=tab==='login'?'block':'none';
+  document.getElementById('signup-form').style.display=tab==='signup'?'block':'none';
+}
+
+function showErr(id,msg){
+  const el=document.getElementById(id);
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3000);
+}
+function hideErr(id){document.getElementById(id).classList.remove('show');}
+
+function doLogin(){
+  const btn=document.getElementById('l-btn');
+  const username=document.getElementById('l-user').value.trim().toLowerCase();
+  const pass=document.getElementById('l-pass').value;
+  if(!username||!pass){showErr('l-err','please fill all fields');return;}
+  btn.classList.add('loading');btn.textContent='';
+  setTimeout(()=>{
+    const users=DB.getUsers();
+    const user=users[username];
+    if(!user||user.passwordHash!==DB.hash(pass)){
+      btn.classList.remove('loading');btn.textContent='sign in';
+      showErr('l-err','Invalid username or password');
+      return;
+    }
+    DB.setSession(username);
+    currentUser={username,displayName:user.displayName};
+    enterApp();
+  },400);
+}
+
+function doSignup(){
+  const btn=document.getElementById('s-btn');
+  const username=document.getElementById('s-user').value.trim().toLowerCase().replace(/\s+/g,'');
+  const name=document.getElementById('s-name').value.trim()||username;
+  const pass=document.getElementById('s-pass').value;
+  let ok=true;
+  if(!username||username.length<2){showErr('s-user-err','Username must be at least 2 characters');ok=false;}
+  if(!ok) return;
+  const users=DB.getUsers();
+  if(users[username]){showErr('s-user-err','Username already taken');return;}
+  if(pass.length<6){showErr('s-pass-err','Password must be at least 6 characters');return;}
+  btn.classList.add('loading');btn.textContent='';
+  setTimeout(()=>{
+    users[username]={username,displayName:name,passwordHash:DB.hash(pass),createdAt:Date.now()};
+    DB.saveUsers(users);
+    DB.setSession(username);
+    currentUser={username,displayName:name};
+    enterApp();
+    showToast('Account created! Welcome, '+name+' 🎉','success');
+  },500);
+}
+
+function demoLogin(){
+  currentUser={username:'guest',displayName:'Guest',isGuest:true};
+  enterApp();
+  showToast('Running as guest — progress won\'t be saved','');
+}
+
+function doLogout(){
+  DB.clearSession();
+  currentUser=null;
+  showPage('auth-page');
+  resetStateClean();
+  showToast('Signed out');
+}
+
+function goProfile(){showToast('Profile: '+currentUser.displayName+' | Tests: '+progress.totalTests);}
+
+function enterApp(){
+  showPage('app-page');
+  loadProgress();
+  init();
+}
+
+function loadProgress(){
+  if(!currentUser||currentUser.isGuest){
+    progress={bestWpm:0,totalTests:0,totalAcc:0,totalKeys:0,history:[]};
+  } else {
+    progress=DB.getProgress(currentUser.username);
+  }
+  updateProfileUI();
+  renderChart();
+  renderHistory();
+}
+
+function saveProgress(){
+  if(!currentUser||currentUser.isGuest) return;
+  DB.saveProgress(currentUser.username,progress);
+}
+
+/* ════════════════════════════════════════════════════════
+   PAGE TRANSITIONS
+════════════════════════════════════════════════════════ */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>{
+    p.classList.toggle('visible',p.id===id);
+    p.classList.toggle('hidden',p.id!==id);
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(type||'');
+  void t.offsetHeight;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ════════════════════════════════════════════════════════
+   CONTENT LIBRARY
+════════════════════════════════════════════════════════ */
+const SENTENCES=[
+  "The amber glow of the setting sun painted long shadows across the meadow.",
+  "She discovered an ancient library hidden beneath the cobblestone streets of Florence.",
+  "Every morning the fishermen dragged their nets through the cold grey Atlantic water.",
+  "Philosophy teaches us to question everything we once accepted without reflection.",
+  "The astronaut floated silently above Earth watching thunderstorms bloom like flowers far below.",
+  "A single candle can drive away the darkness that fills an entire room completely.",
+  "The old locomotive steamed through the mountain pass as snow began to fall.",
+  "Children learn language not through grammar rules but through immersion and repetition.",
+  "The abandoned lighthouse still warned ships away from the jagged reef each night.",
+  "Scientists discovered that the deep ocean contains creatures stranger than any imagined monster.",
+  "She typed her resignation letter slowly choosing each word with surgical precision.",
+  "The city never truly sleeps even at three in the morning it hums.",
+  "Quantum mechanics describes a universe where particles exist in multiple states simultaneously.",
+  "The recipe called for ingredients she had never heard of before today.",
+  "Migrating birds navigate thousands of miles using the Earth magnetic field as a compass.",
+  "He spent forty years painting portraits of people no one else would remember.",
+  "The volcanic island appeared from the ocean over thousands of years of eruption.",
+  "Trust is built slowly over time but can be shattered in a single moment.",
+  "The library smelled of old paper wood polish and quiet possibility around every corner.",
+  "Every civilization that ever flourished eventually declined and left its ruins to the wind.",
+  "She solved the cryptic puzzle using nothing but a pencil and her intuition.",
+  "The bridge connecting the two villages had stood for three hundred years unchanged.",
+  "Neuroscientists now believe that memory is a reconstructive process and not a simple recording.",
+  "Autumn arrived without announcement painting the forest overnight in shades of copper and gold.",
+  "The surgeon worked through the night to save a patient she had never met.",
+  "Language shapes thought as much as thought shapes language a loop without beginning or end.",
+  "The old market opened at dawn filling the square with noise and the smell of bread.",
+  "He kept a journal of every extraordinary thing he witnessed in his ordinary life.",
+  "Dark matter makes up most of the universe yet we cannot directly observe it.",
+  "The thunderstorm arrived from the west just as the picnic was getting comfortable.",
+  "She built her entire career on a skill she had learned as a very young child.",
+  "The telescope revealed galaxies so distant their light was ancient when Rome was young.",
+  "Kindness is contagious when practiced openly in the presence of strangers you have never met.",
+  "The river carved the canyon over millions of years of patient and relentless erosion.",
+  "He memorized the periodic table not because he had to but because he wanted to.",
+  "The bakery on the corner had been in the same family for four generations.",
+  "Ocean currents carry warmth from the tropics to the freezing polar regions above.",
+  "She pressed a dried flower between the pages of every book she ever loved.",
+  "The invention of the printing press changed human civilization more than almost any war.",
+  "Thunder rolled across the valley like distant applause from an enormous invisible audience.",
+  "He read every sign in the foreign city practicing the language with each careful step.",
+  "The aurora borealis danced above the frozen tundra in curtains of green and violet light.",
+  "A well-timed silence can communicate more than an eloquent paragraph ever could to anyone.",
+  "The mountain trail switchbacked through pine forests until it broke above the treeline entirely.",
+  "Archaeology reveals that ancient humans were far more sophisticated than we once imagined possible.",
+  "She organized her thoughts the same way she organized her bookshelves by color and size.",
+  "The ferry crossed the wide cold fjord as morning mist clung to the dark water.",
+  "Every language contains words that have no perfect translation in any other tongue on Earth.",
+  "The documentary crew waited three weeks in the jungle to film thirty seconds of footage.",
+  "Mathematics is the language in which the universe writes its deepest and most beautiful laws.",
+  "The old farmhouse had a root cellar that smelled of earth and winter apples.",
+  "She trained for years to run a race that lasted less than ten seconds total.",
+  "Coral reefs cover less than one percent of the ocean but sustain a quarter of all marine life.",
+  "He wrote letters to his future self and buried them in a tin box under the oak.",
+  "The Renaissance was ignited by the rediscovery of classical Greek and Roman philosophical thought.",
+  "A single bee may visit two thousand flowers in a single foraging flight across the meadow.",
+  "She found that silence was often the most powerful tool in any negotiation she undertook.",
+  "The comet arced across the sky above the desert bright enough to cast pale shadows.",
+  "Learning a second language permanently rewires the deep architecture of the human brain completely.",
+  "The violin song carried through the thin walls of the apartment building late that night.",
+  "He planted a tree knowing he would never sit beneath its full canopy of shade.",
+  "The fossil record reveals a history of life more dramatic than any mythology ever written.",
+  "Steam rose from the coffee cup as she watched rain streak down the window pane.",
+  "Great literature endures because it speaks to something unchanging in the core of human experience.",
+  "The submarine dove beneath the ice shelf into total and crushing and absolute darkness below.",
+  "She knitted through every winter of her long life and the wool remembered her careful hands.",
+  "A forest after a wildfire is not dead it is beginning again from deep underneath.",
+  "He could identify any bird in the valley by its call alone with no sight required.",
+  "The manuscript had survived wars floods and three centuries of completely indifferent ownership.",
+  "Understanding compound interest is the single most important financial lesson that anyone can ever learn.",
+  "The circus arrived on a Tuesday with no announcement and left quietly before anyone noticed it.",
+  "She translated ancient tablets that described a civilization lost beneath the desert sand for millennia.",
+  "The atmosphere of Jupiter could swallow a thousand Earths without becoming remotely full at all.",
+  "He fixed clocks for a living which meant he spent every single day surrounded by time.",
+  "The migratory route of the monarch butterfly spans three consecutive generations of individual butterflies.",
+  "She discovered that the city she had lived in for decades still held many secrets.",
+  "The geologist read the cliff face the way a librarian reads a spine quickly and surely.",
+  "Empathy requires not just hearing the words someone says but imagining their entire inner world.",
+  "The old postal route through the mountains had become a celebrated and popular hiking trail.",
+  "She assembled the telescope on the flat roof and waited patiently for the clouds to part.",
+  "The fern uncurled from its tight coil each spring with extraordinary and patient geometric precision.",
+  "He kept the restaurant open through every single crisis because it was all he had ever known.",
+  "The radio signal had been travelling through space for forty years before we finally heard it.",
+  "She read the same poem every year on her birthday and found something entirely new each time.",
+  "The irrigation canals of ancient Mesopotamia still shape the landscape of modern Iraq today.",
+  "Sleep is not downtime but when the brain consolidates memory and repairs itself from within.",
+  "The woodworker understood that every flaw in the wood grain was an invitation to adapt.",
+  "She finished the marathon not for the medal but for the particular silence at the finish line.",
+  "The tide chart was the most important document in the entire coastal village planning office.",
+  "He spent a sabbatical at the monastery learning that complete stillness is the hardest discipline.",
+  "The translation lost the original poem music but kept its deeper meaning intact across languages.",
+  "She repotted the cactus that had lived on her sunny windowsill for fifteen undemanding years.",
+  "The drought lasted four years and permanently changed which crops the farmers chose to grow.",
+  "He inherited a map of a coastline that no longer existed exactly as it had been drawn.",
+  "The radio telescope listens for patterns in the cosmic noise that fills all of surrounding space.",
+  "She documented every building in the entire neighbourhood before the developers finally arrived that spring.",
+  "The wolf pack moved through the valley at dusk quiet and purposeful as shadows on snow.",
+  "He discovered that the best way to understand any city was to get completely and deliberately lost.",
+  "The solar panels converted the morning light into electricity before the household was even awake.",
+  "She decided the painting was finished not when she could add nothing but when she stopped wanting to.",
+  "The archaeologist brushed centuries of dry soil from a coin smaller than her thumbnail carefully.",
+  "He kept bees not for the honey but for the excuse to stand quietly in the garden.",
+  "The climate of a mountain changes every hundred metres of elevation you climb upward toward the peak.",
+  "She calibrated the delicate instrument with a precision that surprised even her most senior colleagues.",
+  "The river knew every rock in its channel the way a hand knows the keys it types.",
+  "The dunes shifted overnight covering the road in a full metre of pale and mineral silence.",
+  "She recognised the constellation through the cloud gaps the way a reader finds meaning in fragments.",
+  "The apprentice goldsmith spent six full months learning to file a surface perfectly flat and true.",
+  "He understood history not as a simple sequence of events but as a web of human motivations.",
+  "The seed lay dormant in the ancient permafrost for twelve thousand years before germinating in a lab.",
+  "She ran the numbers three separate times because the answer seemed too elegant to possibly be true.",
+  "The ocean liner moved so slowly through the water that passengers forgot they were moving at all.",
+  "He catalogued every single species of moss in the forest with the same devotion some give to art.",
+  "The border between the two countries crossed a river that switched its entire channel every decade.",
+  "She trained her eye on small details because she knew the large picture assembled itself from them.",
+  "The woodpecker drumming echoed through the forest in perfect one-second intervals all morning long.",
+  "The comet dust that fell on ancient Earth may have carried the very building blocks of life itself.",
+  "She pressed her palm flat to the cave wall and traced the outline the artist left ten millennia ago.",
+];
+
+const QUOTES=[
+  "The only way to do great work is to genuinely love what you do every single day.",
+  "In the middle of every difficulty lies an opportunity waiting for the patient and observant mind.",
+  "It does not matter how slowly you go as long as you do not stop moving forward.",
+  "The journey of a thousand miles begins with a single deliberate step taken in the right direction.",
+  "Whether you think you can or think you cannot you are right in both cases always.",
+  "The world is a book and those who do not travel read only one single page of it.",
+  "Be yourself because everyone else is already taken and the role does not need any understudies.",
+  "Two things are infinite the universe and human stupidity and I am not certain about the universe.",
+  "You miss one hundred percent of the shots you never take in any endeavour in life.",
+  "The mind is everything and what you think you eventually become through persistent and patient effort.",
+  "An unexamined life is simply not worth living according to the great philosopher of ancient Athens.",
+  "Spread love everywhere you go and let no one ever come to you without leaving happier.",
+  "Do not go where the path may lead but go instead where there is no path and leave a trail.",
+  "The greatest glory in living lies not in never falling but in rising every single time we fall.",
+  "In the end it is not the years in your life that count but the life in your years.",
+  "Life is either a daring adventure or nothing at all so always choose the adventure.",
+  "You have brains in your head and feet in your shoes and can steer yourself any direction you choose.",
+  "If you set your goals ridiculously high and miss them you will still surpass anyone who plays it safe.",
+  "The secret of getting ahead in life is simply getting started and then refusing to stop.",
+  "It always seems completely impossible until someone does it and then it seems obvious in retrospect.",
+  "Do not watch the clock but do what it does and keep going no matter what the hour.",
+  "You are never too old to set another goal or to dream an entirely new and inspiring dream.",
+  "Believe you can and you are already halfway there because belief precedes every great achievement.",
+  "A person who never made a mistake never tried anything new or grew from any real experience.",
+  "Life shrinks or expands in direct proportion to one courage to face the unknown ahead.",
+];
+
+const PANGRAMS=[
+  "The quick brown fox jumps over the lazy dog near the river bank every single morning.",
+  "Pack my box with five dozen liquor jugs and stack them neatly in the cellar below.",
+  "How vexingly quick daft zebras jump over the fence and through the garden gate each day.",
+  "The five boxing wizards jump quickly across the polished gymnasium floor without any hesitation.",
+  "Sphinx of black quartz judge my vow and tell me if it holds the ancient power.",
+  "Jackdaws love my big sphinx of quartz which stands alone in the desert at high noon.",
+  "Crazy Fredrick bought many very exquisite opal jewels as a gift for his patient wife.",
+  "Heavy boxes perform waltzes and jigs while quick lynxes sleep on the frozen fjord below.",
+  "The job requires extra pluck and zeal from every young wage earner who boldly applies.",
+  "Six big juicy steaks sizzled in a pan as five exhausted workmen left the quarry at dusk.",
+  "Grumpy wizards make a toxic brew for the jovial queen sitting in the palace on the hill.",
+  "Quick wafting zephyrs vex bold Jim the experienced lumberjack who camps high on the ridge.",
+  "Blowzy red vixens fight for a quick jump over the lazy tabby cat sleeping in the warm sun.",
+  "Fix problems with the jazz band quickly before the long evening gala performance begins tonight.",
+  "The fox jumped nimbly over five dozen quivering lazy black dogs resting near the old well.",
+];
+
+const WORD_POOL_NORMAL = "the and that have with this from they will what said each she which their time about if out them then many some would other into has more two like him see could make than first been who now people made over did down only way find use may water long little very after words called just where most know get through back much before good new write our day same right look think also around another came come work word must because does part even place well here take why things help put great large often hand high mother found still learn should world every near add food between own below country plant last school father keep trees never start city earth eyes light thought head under story left both paper together group run important until children side feet care second boy toward mountains cut young soon list song being leave family body music color stand sun questions fish area mark dog horse birds problem complete room knew since pieces told usually friends easy heard order door sure become top ship across today during short better however low hours black happened whole measure remember early waves reached listen wind rock space covered fast several hold himself toward step morning passed vowel war laid against pattern numeral table north slow money map farm pulled draw voice power town fine drive spoke either strong became book brought show though free clear meant quiet natural stone act build middle speed count happened real form half fish still talk might power agree filled heat full hot check object rule among noun.".split(/\W+/).filter(w=>w.length>1);
+
+const HARD_WORDS = "aberration abscond acquiesce adamant adumbrate aesthetic affluence aggrandize allegory ambiguous ameliorate anachronism anarchy ancillary anomaly antagonist antithesis apocryphal approbation arcane arduous aristocracy articulate ascetic aspersion assiduous atrophy audacious augment auspicious austere autonomy avarice belligerent benevolent byzantine capricious castigate censure circumspect clandestine cogent commensurate condescend conjecture contrite convoluted copious covert credulous culpable cynical debilitate decadent deference degenerate deliberate delineate denigrate denounce derogatory didactic diffident dilettante discern disparate dogmatic dubious eccentric efficacy egregious eloquent empirical endemic ephemeral equivocal esoteric evocative exacerbate exculpate exigent exonerate expedient extravagant extraneous fabricate facetious fallacious fastidious fervent flagrant flippant formidable fortuitous frugal garrulous glib grandiloquent gratuitous gregarious guileless hackneyed hegemony heresy homogeneous hyperbole iconoclast idiosyncrasy ignoble immutable impeccable impertinent implication impudent incisive incongruous incontrovertible indigenous indolent inept inexorable innocuous insidious intrepid inveterate irascible laconic laudable lethargic litigious lucid lugubrious magnanimous malevolent malleable meticulous mitigate mollify munificent nebulous nefarious obdurate obsequious obstinate obtuse onerous opaque opprobrium ostentatious paradox partisan pedantic pernicious perspicacious phlegmatic placate platitude plausible polarize ponderous pragmatic precarious presumptuous prevaricate procrastinate profound propitious prudent querulous recalcitrant reclusive reticent rhetoric rigorous sardonic scrupulous sedulous stoic stringent sublimate succinct superfluous sycophant taciturn tenacious transient ubiquitous vacuous verbose vindicate vociferous voluminous zealous".split(" ");
+
+const EXPERT_WORDS = "abnegation abrogation abstemious accretion acrimonious adumbration alacrity amelioration anachronistic anathema antediluvian anthropomorphic antipodean aphoristic apotheosis asseverate atavistic autodidact bellicose bifurcate byzantine capricious caveat chicanery circumlocution circumspect cognoscenti commensurate compunction concatenate confabulate consanguine contumacious convivial corroborated decrepitude deferential deleterious delineation demagoguery demur desultory dialectical dilettante dissonance dysfunctional ebullience efficacious egregious enervate ephemeral epistemic equanimity equivocate erudite eschew eviscerate exacerbate excoriate exegesis exigent expatiate expedience extrapolate extrinsic fastidious fatuous feckless felicitous flagitious flummoxed fomentation fortuitous fulminate garrulous grandiloquent gratuitous gubernatorial guileless harbinger hegemonic hermetic heuristic iconoclastic idiosyncratic ignominious immutable impecunious impugn inchoate ineluctable inexorable insouciant intransigent invidious irrefragable jejune juxtaposition lachrymose lascivious lionize logorrhea lugubrious magnanimous malfeasance melancholic mendacious mercurial meretricious metonymy miasma misanthropy mollification munificence nebulous nefarious nonplussed obdurate obloquy obstreperous obtuse odious ominous opprobrium ostentatious palimpsest paternalistic peccadillo perfidious perspicacious pertinacious platitudinous pleonasm polemic portentous pragmatic precipitous prestidigitation prevarication probity profligate propitious proscribe punctilious putative querulous ratiocination raucous recalcitrant recondite redolent remonstrate reprobate reticent salubrious sanguine sardonic scrupulous sedulous solipsism sophistry soporific specious spurious stoicism stringent subversive supercilious sycophantic tenuous tendentious timorous turgid ubiquitous unctuous vacillate vapid venality vicarious visceral vituperate voluble zealotry".split(" ");
+
+/* ════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════ */
+const mode={type:'words',time:15,diff:'normal'};
+let progress={bestWpm:0,totalTests:0,totalAcc:0,totalKeys:0,history:[]};
+
+const st={
+  running:false,finished:false,
+  startTime:null,timeLeft:15,timer:null,
+  currentText:[],charIndex:0,
+  correctChars:0,wrongChars:0,totalKeys:0,
+  wordsTyped:0,wpmHistory:[],
+};
+
+let charEls=[];
+let lastVal='';
+
+/* ════════════════════════════════════════════════════════
+   TEXT GENERATION
+════════════════════════════════════════════════════════ */
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+function generateText(){
+  const needed=Math.ceil((st.timeLeft/60)*130+80);
+  if(mode.type==='sentences'||mode.type==='quotes'||mode.type==='pangrams'){
+    const pool=mode.type==='sentences'?SENTENCES:mode.type==='quotes'?QUOTES:PANGRAMS;
+    const sh=shuffle(pool);
+    let res='';let i=0;
+    while(res.split(' ').length<needed+30){res+=(res?' ':'')+sh[i%sh.length];i++;}
+    return res.trim().split(/\s+/);
+  }
+  let pool;
+  if(mode.diff==='normal')pool=shuffle(WORD_POOL_NORMAL);
+  else if(mode.diff==='hard')pool=shuffle(HARD_WORDS);
+  else pool=shuffle(EXPERT_WORDS);
+  return Array.from({length:needed},(_,i)=>pool[i%pool.length]);
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER
+════════════════════════════════════════════════════════ */
+function renderWords(words){
+  const c=document.getElementById('words-c');
+  c.innerHTML='';charEls=[];
+  words.forEach((word,wi)=>{
+    const we=document.createElement('span');
+    we.className='word-el'+(wi===0?' cw':'');
+    we.dataset.wi=wi;
+    [...word].forEach(ch=>{
+      const ce=document.createElement('span');
+      ce.className='char-el pending';
+      ce.textContent=ch;
+      we.appendChild(ce);
+      charEls.push({el:ce,ch,wi,we,isSp:false});
+    });
+    if(wi<words.length-1){
+      const se=document.createElement('span');
+      se.className='char-el pending';
+      se.textContent=' ';
+      we.appendChild(se);
+      charEls.push({el:se,ch:' ',wi,we,isSp:true});
+    }
+    c.appendChild(we);
+  });
+  placeCursor(0);
+}
+
+function placeCursor(idx){
+  document.querySelectorAll('.tc').forEach(e=>e.remove());
+  const cur=document.createElement('span');cur.className='tc';
+  if(idx<charEls.length){charEls[idx].el.before(cur);}
+  else if(charEls.length){charEls[charEls.length-1].el.after(cur);}
+  cur.scrollIntoView({block:'center',behavior:'smooth'});
+}
+
+function setCurrentWord(wi){
+  document.querySelectorAll('.word-el').forEach((el,i)=>el.classList.toggle('cw',i===wi));
+}
+
+/* ════════════════════════════════════════════════════════
+   INPUT
+════════════════════════════════════════════════════════ */
+function focusIn(){
+  document.getElementById('hidden-in').focus();
+  document.getElementById('text-box').classList.add('focused');
+  document.getElementById('focus-ind').textContent='● focused';
+}
+
+document.getElementById('hidden-in').addEventListener('focus',()=>{
+  document.getElementById('text-box').classList.add('focused');
+  document.getElementById('focus-ind').textContent='● focused';
+});
+document.getElementById('hidden-in').addEventListener('blur',()=>{
+  document.getElementById('text-box').classList.remove('focused');
+  document.getElementById('focus-ind').textContent='click to focus';
+});
+
+document.getElementById('hidden-in').addEventListener('keydown',e=>{
+  if(e.getModifierState)document.getElementById('caps-warn').classList.toggle('show',e.getModifierState('CapsLock'));
+  if(e.key==='Escape'){resetTest();}
+});
+
+document.getElementById('hidden-in').addEventListener('input',handleInput);
+
+function handleInput(){
+  if(st.finished)return;
+  const input=document.getElementById('hidden-in');
+  const val=input.value;
+  if(!st.running&&val.length>0)startTimer();
+  const idx=st.charIndex;
+  const exp=charEls[idx];
+  if(val.length>lastVal.length){
+    const typed=val[val.length-1];
+    st.totalKeys++;
+    if(exp){
+      if(typed===exp.ch){
+        exp.el.className='char-el correct';
+        st.correctChars++;
+        if(exp.isSp){setCurrentWord(exp.wi+1);st.wordsTyped++;snapWpm();}
+      } else {
+        exp.el.className='char-el wrong';
+        st.wrongChars++;
+        errFlash();
+      }
+      st.charIndex++;
+      placeCursor(st.charIndex);
+    }
+    updateLive();
+  } else if(val.length<lastVal.length){
+    if(st.charIndex>0){
+      st.charIndex--;
+      const prev=charEls[st.charIndex];
+      const wasC=prev.el.classList.contains('correct');
+      prev.el.className='char-el pending';
+      if(wasC)st.correctChars=Math.max(0,st.correctChars-1);
+      else st.wrongChars=Math.max(0,st.wrongChars-1);
+      if(prev.isSp){setCurrentWord(prev.wi);if(st.wordsTyped>0)st.wordsTyped--;}
+      placeCursor(st.charIndex);
+      updateLive();
+    }
+  }
+  if(val.length>300)input.value=val.slice(-150);
+  lastVal=input.value;
+  const pct=(st.charIndex/charEls.length)*100;
+  document.getElementById('prog').style.width=pct+'%';
+  if(st.charIndex>=charEls.length)finishTest();
+}
+
+function errFlash(){
+  const b=document.getElementById('text-box');
+  b.classList.remove('ef');void b.offsetHeight;b.classList.add('ef');
+}
+
+/* ════════════════════════════════════════════════════════
+   TIMER
+════════════════════════════════════════════════════════ */
+function startTimer(){
+  st.startTime=Date.now();
+  st.timeLeft=parseInt(mode.time);
+  st.running=true;
+  updateHud();
+  st.timer=setInterval(()=>{
+    st.timeLeft--;
+    updateHud();
+    updateLive();
+    if(st.timeLeft<=0)finishTest();
+  },1000);
+}
+
+function updateHud(){
+  const el=document.getElementById('hud-t');
+  if(!st.running){
+    el.textContent=mode.time>=60?(mode.time/60)+'m':mode.time+'s';
+    el.classList.remove('urgent');
+    document.getElementById('hud-live').textContent='';
+    return;
+  }
+  const m=Math.floor(st.timeLeft/60),s=st.timeLeft%60;
+  el.textContent=mode.time>=60?m+':'+(s<10?'0':'')+s:st.timeLeft+'s';
+  el.classList.toggle('urgent',st.timeLeft<=5);
+  const wpm=calcWpm();
+  document.getElementById('hud-live').textContent=wpm+' wpm live';
+}
+
+function calcWpm(){
+  if(!st.startTime)return 0;
+  const e=(Date.now()-st.startTime)/60000;
+  return e>0?Math.round((st.correctChars/5)/e):0;
+}
+
+function snapWpm(){
+  const w=calcWpm();if(w>0)st.wpmHistory.push(w);
+}
+
+/* ════════════════════════════════════════════════════════
+   LIVE STATS
+════════════════════════════════════════════════════════ */
+function updateLive(){
+  // No separate live panel needed — hud handles it
+}
+
+/* ════════════════════════════════════════════════════════
+   FINISH
+════════════════════════════════════════════════════════ */
+function finishTest(){
+  if(st.finished)return;
+  st.finished=true;st.running=false;
+  clearInterval(st.timer);
+
+  const elapsed=(Date.now()-st.startTime)/60000;
+  const wpm=Math.round((st.correctChars/5)/elapsed);
+  const rawWpm=Math.round((st.totalKeys/5)/elapsed);
+  const total=st.correctChars+st.wrongChars;
+  const acc=total>0?Math.round((st.correctChars/total)*100):100;
+  let consistency=100;
+  if(st.wpmHistory.length>2){
+    const mean=st.wpmHistory.reduce((a,b)=>a+b,0)/st.wpmHistory.length;
+    const sd=Math.sqrt(st.wpmHistory.reduce((a,b)=>a+(b-mean)**2,0)/st.wpmHistory.length);
+    consistency=Math.max(0,Math.round(100-(sd/(mean||1))*100));
+  }
+
+  // Results UI
+  document.getElementById('r-wpm').textContent=wpm;
+  document.getElementById('r-raw').textContent=rawWpm;
+  document.getElementById('r-acc').textContent=acc+'%';
+  document.getElementById('r-con').textContent=consistency+'%';
+  document.getElementById('r-cor').textContent=st.correctChars;
+  document.getElementById('r-err').textContent=st.wrongChars;
+  document.getElementById('r-keys').textContent=st.totalKeys;
+
+  const isNewBest=wpm>progress.bestWpm&&wpm>0;
+  document.getElementById('new-best-badge').style.display=isNewBest?'block':'none';
+  document.getElementById('res-ov').classList.add('show');
+
+  // Update progress
+  if(wpm>progress.bestWpm)progress.bestWpm=wpm;
+  progress.totalTests++;
+  progress.totalAcc+=acc;
+  progress.totalKeys+=st.totalKeys;
+
+  const modeLabel=mode.type+' · '+mode.diff+' · '+mode.time+'s';
+  progress.history.unshift({wpm,rawWpm,acc,consistency,correct:st.correctChars,errors:st.wrongChars,mode:modeLabel,ts:new Date().toLocaleTimeString()});
+  if(progress.history.length>50)progress.history=progress.history.slice(0,50);
+
+  saveProgress();
+  updateProfileUI();
+  renderHistory();
+  renderChart();
+
+  if(isNewBest)showToast('🏆 New personal best: '+wpm+' WPM!','success');
+}
+
+function updateProfileUI(){
+  document.getElementById('s-bestwpm').textContent=progress.bestWpm||'—';
+  document.getElementById('s-avgacc').textContent=progress.totalTests?Math.round(progress.totalAcc/progress.totalTests)+'%':'—';
+  document.getElementById('s-tests').textContent=progress.totalTests;
+  document.getElementById('s-keys').textContent=progress.totalKeys.toLocaleString();
+
+  if(currentUser){
+    const initials=(currentUser.displayName||currentUser.username||'?').slice(0,2).toUpperCase();
+    document.getElementById('u-avatar').textContent=initials;
+    document.getElementById('u-name').textContent=currentUser.displayName||currentUser.username;
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   HISTORY
+════════════════════════════════════════════════════════ */
+function renderHistory(){
+  const g=document.getElementById('hist-grid');
+  if(!progress.history.length){
+    g.innerHTML='<div class="no-hist">complete a test to see your history</div>';return;
+  }
+  g.innerHTML=progress.history.slice(0,20).map((h,i)=>`
+    <div class="hist-row" style="animation-delay:${i*0.03}s">
+      <span class="hist-rank">${i+1}</span>
+      <span class="hist-mode">${h.mode}</span>
+      <span class="hist-wpm">${h.wpm}<small style="font-size:0.6rem;color:var(--dim);font-weight:400"> wpm</small></span>
+      <span class="hist-acc">${h.acc}%</span>
+      <span class="hist-err">✗${h.errors}</span>
+      <span class="hist-ts">${h.ts}</span>
+    </div>
+  `).join('');
+}
+
+function renderChart(){
+  const g=document.getElementById('mini-graph');
+  const hist=[...progress.history].reverse().slice(-20);
+  if(!hist.length){
+    g.innerHTML='<div class="no-hist" style="width:100%;font-size:0.7rem">no data yet — complete a test!</div>';
+    return;
+  }
+  const max=Math.max(...hist.map(h=>h.wpm),1);
+  const best=Math.max(...hist.map(h=>h.wpm));
+  g.innerHTML=hist.map(h=>{
+    const pct=Math.max(5,Math.round((h.wpm/max)*100));
+    const isBest=h.wpm===best;
+    return `<div class="bar" style="height:${pct}%" ${isBest?'data-best':''} title="${h.wpm} wpm · ${h.acc}%"></div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════════════
+   RESTART / RESET
+════════════════════════════════════════════════════════ */
+function clearSt(){
+  clearInterval(st.timer);
+  st.running=false;st.finished=false;
+  st.startTime=null;st.timeLeft=parseInt(mode.time);
+  st.charIndex=0;
+  st.correctChars=0;st.wrongChars=0;st.totalKeys=0;
+  st.wordsTyped=0;st.wpmHistory=[];
+  lastVal='';
+  document.getElementById('hidden-in').value='';
+  document.getElementById('res-ov').classList.remove('show');
+  document.getElementById('prog').style.width='0%';
+  updateHud();
+}
+
+function restartTest(){
+  clearSt();
+  renderWords(st.currentText);
+  focusIn();
+}
+
+function newText(){
+  clearSt();
+  st.currentText=generateText();
+  renderWords(st.currentText);
+  focusIn();
+}
+
+function resetTest(){clearSt();renderWords(st.currentText);focusIn();}
+
+function resetStateClean(){
+  clearSt();
+  st.currentText=[];
+  document.getElementById('words-c').innerHTML='';
+}
+
+/* ════════════════════════════════════════════════════════
+   MODE BUTTONS
+════════════════════════════════════════════════════════ */
+document.querySelectorAll('.mbtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const g=btn.dataset.g,v=btn.dataset.v;
+    document.querySelectorAll(`.mbtn[data-g="${g}"]`).forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(g==='type')mode.type=v;
+    else if(g==='time')mode.time=parseInt(v);
+    else mode.diff=v;
+    newText();
+  });
+});
+
+/* ════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+════════════════════════════════════════════════════════ */
+let tabHeld=false;
+document.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){tabHeld=true;e.preventDefault();}
+  if(tabHeld&&e.key==='Enter'){e.preventDefault();newText();}
+  if(e.key==='Tab'&&!st.running){e.preventDefault();restartTest();}
+  if(e.getModifierState)document.getElementById('caps-warn').classList.toggle('show',e.getModifierState('CapsLock'));
+});
+document.addEventListener('keyup',e=>{if(e.key==='Tab')tabHeld=false;});
+
+/* ════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════ */
+function init(){
+  st.currentText=generateText();
+  renderWords(st.currentText);
+  updateHud();
+  setTimeout(focusIn,300);
+}
+
+/* ════════════════════════════════════════════════════════
+   AUTO-LOGIN CHECK
+════════════════════════════════════════════════════════ */
+(function checkSession(){
+  const saved=DB.getSession();
+  if(saved){
+    const users=DB.getUsers();
+    if(users[saved]){
+      currentUser={username:saved,displayName:users[saved].displayName};
+      enterApp();
+      return;
+    }
+    DB.clearSession();
+  }
+  showPage('auth-page');
+})();
+
+/* Enter key on auth inputs */
+document.getElementById('l-pass').addEventListener('keydown',e=>e.key==='Enter'&&doLogin());
+document.getElementById('l-user').addEventListener('keydown',e=>e.key==='Enter'&&focusPass());
+function focusPass(){document.getElementById('l-pass').focus();}
+document.getElementById('s-pass').addEventListener('keydown',e=>e.key==='Enter'&&doSignup());
+</script>
+</body>
+</html>
